@@ -1,5 +1,5 @@
 {
-  "name": "@parcha-ai/hands-free",
+  "name": "@parcha/hands-free",
   "version": "0.1.0",
   "description": "Route Codex approval and input prompts to a phone call through Vapi.",
   "license": "MIT",
