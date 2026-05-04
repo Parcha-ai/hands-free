@@ -1,0 +1,40 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\"",
+            "statusMessage": "Calling for hands-free approval",
+            "timeout": 220
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\"",
+            "statusMessage": "Checking hands-free phone input",
+            "timeout": 240
+          }
+        ]
+      }
+    ]
+  }
+}

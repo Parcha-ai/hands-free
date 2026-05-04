@@ -1,0 +1,51 @@
+{
+  "name": "@parcha-ai/hands-free",
+  "version": "0.1.0",
+  "description": "Route Codex approval and input prompts to a phone call through Vapi.",
+  "license": "MIT",
+  "type": "commonjs",
+  "bin": {
+    "hands-free-codex": "./bin/hands-free-codex.js"
+  },
+  "scripts": {
+    "test": "python3 -m unittest discover -s tests -v && python3 -m py_compile scripts/hands_free_hook.py skills/hands-free/scripts/hands_free_hook.py && python3 -m json.tool .codex-plugin/plugin.json >/dev/null && python3 -m json.tool hooks/hooks.json >/dev/null && python3 -m json.tool examples/hooks.json >/dev/null && python3 -m json.tool .agents/plugins/marketplace.json >/dev/null",
+    "pack:check": "npm pack --dry-run"
+  },
+  "files": [
+    ".agents/plugins/*.json",
+    ".codex-plugin/*.json",
+    "bin/*.js",
+    "examples/*.toml",
+    "examples/*.json",
+    "hooks/*.json",
+    "scripts/*.py",
+    "skills/hands-free/SKILL.md",
+    "skills/hands-free/agents/*.yaml",
+    "skills/hands-free/scripts/*.py",
+    ".env.example",
+    "install.sh",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "codex",
+    "openai-codex",
+    "skill",
+    "plugin",
+    "hooks",
+    "vapi",
+    "phone",
+    "voice"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Parcha-ai/hands-free.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Parcha-ai/hands-free/issues"
+  },
+  "homepage": "https://github.com/Parcha-ai/hands-free#readme",
+  "engines": {
+    "node": ">=18"
+  }
+}

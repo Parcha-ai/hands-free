@@ -1,0 +1,21 @@
+{
+  "name": "hands-free-marketplace",
+  "interface": {
+    "displayName": "Hands Free"
+  },
+  "plugins": [
+    {
+      "name": "hands-free",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/Parcha-ai/hands-free.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
