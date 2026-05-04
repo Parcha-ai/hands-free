@@ -5,7 +5,7 @@
   "license": "MIT",
   "type": "commonjs",
   "bin": {
-    "hands-free-codex": "./bin/hands-free-codex.js"
+    "hands-free-codex": "bin/hands-free-codex.js"
   },
   "scripts": {
     "test": "python3 -m unittest discover -s tests -v && python3 -m py_compile scripts/hands_free_hook.py skills/hands-free/scripts/hands_free_hook.py && python3 -m json.tool .codex-plugin/plugin.json >/dev/null && python3 -m json.tool hooks/hooks.json >/dev/null && python3 -m json.tool examples/hooks.json >/dev/null && python3 -m json.tool .agents/plugins/marketplace.json >/dev/null",
