@@ -1,4 +1,15 @@
 #!/usr/bin/env python3
+"""Hands-Free hook: route approval / input prompts to a phone call via Vapi.
+
+Harness-agnostic. Detects whether the harness is Claude Code or Codex from the
+HANDS_FREE_HARNESS env var (set by the installer) or the event payload, and
+shapes hook output accordingly.
+
+Events handled:
+  - UserPromptSubmit: toggle activation on "activate hands free" / "deactivate".
+  - PreToolUse (Claude Code) / PermissionRequest (Codex): place approval call.
+  - Stop: when the final assistant turn looks like a question, call for input.
+"""
 import json
 import os
 import pathlib
@@ -9,8 +20,30 @@ import urllib.error
 import urllib.request
 
 
-CODEX_HOME = pathlib.Path(os.environ.get("CODEX_HOME", pathlib.Path.home() / ".codex")).expanduser()
-BASE_DIR = CODEX_HOME / "hands-free"
+def _resolve_home():
+    explicit = os.environ.get("HANDS_FREE_HOME")
+    if explicit:
+        return pathlib.Path(explicit).expanduser()
+    harness = (os.environ.get("HANDS_FREE_HARNESS") or "").lower()
+    if harness == "claude-code":
+        return pathlib.Path(os.environ.get("CLAUDE_HOME", pathlib.Path.home() / ".claude")).expanduser() / "hands-free"
+    if harness == "codex":
+        return pathlib.Path(os.environ.get("CODEX_HOME", pathlib.Path.home() / ".codex")).expanduser() / "hands-free"
+    # Auto-detect: prefer codex if CODEX_HOME set, else claude.
+    if os.environ.get("CODEX_HOME"):
+        return pathlib.Path(os.environ["CODEX_HOME"]).expanduser() / "hands-free"
+    if os.environ.get("CLAUDE_HOME"):
+        return pathlib.Path(os.environ["CLAUDE_HOME"]).expanduser() / "hands-free"
+    codex_default = pathlib.Path.home() / ".codex" / "hands-free"
+    claude_default = pathlib.Path.home() / ".claude" / "hands-free"
+    if codex_default.exists() and not claude_default.exists():
+        return codex_default
+    if claude_default.exists() and not codex_default.exists():
+        return claude_default
+    return claude_default
+
+
+BASE_DIR = _resolve_home()
 ENV_PATH = BASE_DIR / ".env"
 STATE_PATH = BASE_DIR / "state.json"
 API_BASE = "https://api.vapi.ai"
@@ -73,6 +106,23 @@ def read_hook_input():
         return {}
 
 
+def detect_harness(hook_input):
+    """Return 'claude-code' or 'codex'."""
+    explicit = (os.environ.get("HANDS_FREE_HARNESS") or "").lower()
+    if explicit in ("claude-code", "codex"):
+        return explicit
+    event_name = hook_input.get("hook_event_name") or hook_input.get("hookEventName") or ""
+    if event_name == "PreToolUse":
+        return "claude-code"
+    if event_name == "PermissionRequest":
+        return "codex"
+    if "session_id" in hook_input or "permission_mode" in hook_input:
+        return "claude-code"
+    if os.environ.get("CODEX_HOME") and not os.environ.get("CLAUDE_HOME"):
+        return "codex"
+    return "claude-code"
+
+
 def vapi_request(method, path, api_key, payload=None, timeout=30):
     body = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(
@@ -82,7 +132,7 @@ def vapi_request(method, path, api_key, payload=None, timeout=30):
         headers={
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "User-Agent": "codex-hands-free/0.1",
+            "User-Agent": "hands-free/0.2",
         },
     )
     try:
@@ -223,6 +273,10 @@ def approval_decision(answer):
 
 
 def extract_last_agent_message(transcript_path):
+    """Pull the last assistant message from a transcript JSONL file.
+
+    Supports both Codex's event_msg/response_item schema and Claude Code's
+    transcript schema (which stores message objects with role + content)."""
     if not transcript_path:
         return ""
     path = pathlib.Path(transcript_path)
@@ -234,6 +288,7 @@ def extract_last_agent_message(transcript_path):
             event = json.loads(line)
         except json.JSONDecodeError:
             continue
+        # Codex shapes
         payload = event.get("payload") or {}
         if event.get("type") == "event_msg" and payload.get("type") in ("agent_message", "task_complete"):
             last_message = payload.get("message") or payload.get("last_agent_message") or last_message
@@ -244,6 +299,16 @@ def extract_last_agent_message(transcript_path):
                 texts = [part.get("text", "") for part in content if isinstance(part, dict)]
                 if texts:
                     last_message = "\n".join(texts)
+        # Claude Code transcript shape: {"type":"assistant","message":{"content":[{"type":"text","text":"..."}]}}
+        if event.get("type") == "assistant":
+            message = event.get("message") or {}
+            content = message.get("content")
+            if isinstance(content, str) and content.strip():
+                last_message = content
+            elif isinstance(content, list):
+                texts = [part.get("text", "") for part in content if isinstance(part, dict) and part.get("type") == "text"]
+                if texts:
+                    last_message = "\n".join(t for t in texts if t)
     return last_message.strip()
 
 
@@ -268,8 +333,19 @@ def looks_like_input_request(message):
     return False
 
 
+def get_prompt_text(hook_input):
+    """Read the submitted user prompt from either harness's payload."""
+    return (
+        hook_input.get("prompt")
+        or hook_input.get("user_message")
+        or hook_input.get("userMessage")
+        or hook_input.get("user_prompt")
+        or ""
+    )
+
+
 def handle_user_prompt_submit(hook_input, state):
-    prompt = normalize(hook_input.get("prompt", ""))
+    prompt = normalize(get_prompt_text(hook_input))
     if has_command(prompt, ("deactivate", "disable", "stop")) or (re.search(r"\bturn off\b", prompt) and mentions_hands_free(prompt)):
         save_state({"active": False, "deactivated_at": time.time()})
         stdout_json({"continue": True, "systemMessage": "Hands-free mode deactivated."})
@@ -298,13 +374,20 @@ def handle_user_prompt_submit(hook_input, state):
         })
 
 
-def handle_permission_request(hook_input, state):
+def get_tool_request(hook_input):
+    """Extract (tool_name, description, command) regardless of harness."""
+    tool_name = hook_input.get("tool_name") or hook_input.get("toolName") or "tool"
+    tool_input = hook_input.get("tool_input") or hook_input.get("toolInput") or {}
+    description = tool_input.get("description") if isinstance(tool_input, dict) else None
+    command = tool_input.get("command") if isinstance(tool_input, dict) else None
+    return tool_name, description, command
+
+
+def handle_permission_request(hook_input, state, harness):
     if not state.get("active"):
         return
-    tool_name = hook_input.get("tool_name", "tool")
-    description = hook_input.get("tool_input", {}).get("description")
-    command = hook_input.get("tool_input", {}).get("command")
-    message = description or command or f"Codex wants approval to use {tool_name}."
+    tool_name, description, command = get_tool_request(hook_input)
+    message = description or command or f"The assistant wants approval to use {tool_name}."
     try:
         call = call_for_input(message, "approval", raw_call=True)
         answer = extract_user_answer(call, allow_unattributed=False)
@@ -313,17 +396,26 @@ def handle_permission_request(hook_input, state):
         stdout_json({"systemMessage": f"Hands-free phone approval failed: {error}"})
         return
     if decision in ("allow", "deny"):
-        stdout_json({
-            "hookSpecificOutput": {
-                "hookEventName": "PermissionRequest",
-                "decision": {
-                    "behavior": decision,
-                    "message": f"Hands-free phone response: {decision}",
-                },
-            }
-        })
+        if harness == "claude-code":
+            stdout_json({
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": decision,
+                    "permissionDecisionReason": f"Hands-free phone response: {decision}",
+                }
+            })
+        else:
+            stdout_json({
+                "hookSpecificOutput": {
+                    "hookEventName": "PermissionRequest",
+                    "decision": {
+                        "behavior": decision,
+                        "message": f"Hands-free phone response: {decision}",
+                    },
+                }
+            })
         return
-    stdout_json({"systemMessage": "Hands-free phone approval was ambiguous; falling back to normal Codex approval."})
+    stdout_json({"systemMessage": "Hands-free phone approval was ambiguous; falling back to normal approval."})
 
 
 def handle_stop(hook_input, state):
@@ -352,11 +444,12 @@ def handle_stop(hook_input, state):
 def main():
     hook_input = read_hook_input()
     state = load_state()
+    harness = detect_harness(hook_input)
     event_name = hook_input.get("hook_event_name") or hook_input.get("hookEventName")
     if event_name == "UserPromptSubmit":
         handle_user_prompt_submit(hook_input, state)
-    elif event_name == "PermissionRequest":
-        handle_permission_request(hook_input, state)
+    elif event_name in ("PermissionRequest", "PreToolUse"):
+        handle_permission_request(hook_input, state, harness)
     elif event_name == "Stop":
         handle_stop(hook_input, state)
 

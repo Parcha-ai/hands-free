@@ -1,14 +1,14 @@
 {
   "name": "@parcha/hands-free",
-  "version": "0.1.0",
-  "description": "Route Codex approval and input prompts to a phone call through Vapi.",
+  "version": "0.2.0",
+  "description": "Route AI coding-assistant approval and input prompts to a phone call through Vapi. Works with Claude Code and Codex.",
   "license": "MIT",
   "type": "commonjs",
   "bin": {
-    "hands-free-codex": "bin/hands-free-codex.js"
+    "hands-free": "bin/hands-free.js"
   },
   "scripts": {
-    "test": "python3 -m unittest discover -s tests -v && python3 -m py_compile scripts/hands_free_hook.py skills/hands-free/scripts/hands_free_hook.py && python3 -m json.tool .codex-plugin/plugin.json >/dev/null && python3 -m json.tool hooks/hooks.json >/dev/null && python3 -m json.tool examples/hooks.json >/dev/null && python3 -m json.tool .agents/plugins/marketplace.json >/dev/null",
+    "test": "python3 -m unittest discover -s tests -v && python3 -m py_compile scripts/hands_free_hook.py skills/hands-free/scripts/hands_free_hook.py && python3 -m json.tool .codex-plugin/plugin.json >/dev/null && python3 -m json.tool hooks/hooks.json >/dev/null && python3 -m json.tool examples/hooks.json >/dev/null && python3 -m json.tool examples/claude-settings.json >/dev/null && python3 -m json.tool .agents/plugins/marketplace.json >/dev/null",
     "pack:check": "npm pack --dry-run"
   },
   "files": [
@@ -28,8 +28,10 @@
     "LICENSE"
   ],
   "keywords": [
+    "claude-code",
     "codex",
     "openai-codex",
+    "anthropic",
     "skill",
     "plugin",
     "hooks",
