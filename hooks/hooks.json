@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -x \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\" ]; then python3 \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\"; fi",
+            "command": "if [ -x \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\" ]; then HANDS_FREE_HARNESS=codex python3 \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\"; fi",
             "timeout": 10
           }
         ]
@@ -17,7 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -x \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\" ]; then python3 \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\"; fi",
+            "command": "if [ -x \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\" ]; then HANDS_FREE_HARNESS=codex python3 \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\"; fi",
             "statusMessage": "Calling for hands-free approval",
             "timeout": 220
           }
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -x \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\" ]; then python3 \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\"; fi",
+            "command": "if [ -x \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\" ]; then HANDS_FREE_HARNESS=codex python3 \"${CODEX_HOME:-$HOME/.codex}/hands-free/scripts/hands_free_hook.py\"; fi",
             "statusMessage": "Checking hands-free phone input",
             "timeout": 240
           }
