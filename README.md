@@ -2,7 +2,7 @@
 
 Route AI coding-assistant approval and input prompts to a phone call through Vapi. Works with **Claude Code** and **OpenAI Codex**.
 
-[![skills.sh](https://skills.sh/b/Parcha-ai/hands-free)](https://skills.sh/Parcha-ai/hands-free)
+[![skills.sh](https://skills.sh/b/Parcha-ai/hands-free)](https://skills.sh/Parcha-ai/hands-free/hands-free)
 
 ## What It Does
 

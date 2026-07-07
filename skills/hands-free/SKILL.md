@@ -5,6 +5,14 @@ description: Phone-based input bridge for AI coding assistants. Use when the use
 
 # Hands Free
 
+## Setup check
+
+This skill depends on a hook script and Vapi credentials that the skill file alone does not
+provide. If `<harness home>/hands-free/scripts/hands_free_hook.py` or `<harness home>/hands-free/.env`
+is missing (common when the skill was copied in by a skills manager), run
+`npx @parcha/hands-free install` and have the user fill in the generated `.env`, then restart
+the assistant.
+
 ## Behavior
 
 When the user activates hands-free mode, the underlying hook (installed at `<harness home>/hands-free/scripts/hands_free_hook.py`) handles all phone routing. The harness — Claude Code or Codex — is passed to the hook via the `HANDS_FREE_HARNESS` env var by the installer, so the same script produces the right decision shape for each.
