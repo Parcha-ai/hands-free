@@ -1,3 +1,6 @@
+> [!IMPORTANT]
+> **Moved.** This project now lives at [miguelrios/unc-skills](https://github.com/miguelrios/unc-skills) (full history preserved via subtree). This repo is archived.
+
 # Hands Free
 
 Route AI coding-assistant approval and input prompts to a phone call through Vapi. Works with **Claude Code** and **OpenAI Codex**.
